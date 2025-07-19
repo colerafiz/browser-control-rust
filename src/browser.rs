@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotParams;
+use chromiumoxide::cdp::browser_protocol::input::{DispatchMouseEventParams, DispatchMouseEventType, MouseButton};
 use chromiumoxide::{Browser, BrowserConfig, Page};
 use colored::*;
 use futures_util::StreamExt;
@@ -298,6 +299,141 @@ impl BrowserController {
         page.evaluate("window.history.forward()").await?;
         
         println!("{}", "Navigated forward".green());
+        Ok(())
+    }
+
+    pub async fn click_at_coordinates(&self, x: f64, y: f64) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", format!("Clicking at coordinates: ({}, {})", x, y).blue());
+        
+        let page = self.page.as_ref().unwrap();
+        
+        // First, move the mouse to the coordinates
+        let move_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .r#type(DispatchMouseEventType::MouseMoved)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse move command: {}", e))?;
+        
+        page.execute(move_cmd).await?;
+        
+        // Then perform the click (mouse down)
+        let down_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Left)
+            .r#type(DispatchMouseEventType::MousePressed)
+            .click_count(1)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse down command: {}", e))?;
+        
+        page.execute(down_cmd).await?;
+        
+        // Finally release the mouse button (mouse up)
+        let up_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Left)
+            .r#type(DispatchMouseEventType::MouseReleased)
+            .click_count(1)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse up command: {}", e))?;
+        
+        page.execute(up_cmd).await?;
+        
+        println!("{}", format!("Clicked at ({}, {})", x, y).green());
+        Ok(())
+    }
+
+    pub async fn double_click_at_coordinates(&self, x: f64, y: f64) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", format!("Double-clicking at coordinates: ({}, {})", x, y).blue());
+        
+        let page = self.page.as_ref().unwrap();
+        
+        // Move mouse to coordinates
+        let move_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .r#type(DispatchMouseEventType::MouseMoved)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse move command: {}", e))?;
+        
+        page.execute(move_cmd).await?;
+        
+        // Double click (mouse down with click_count=2)
+        let down_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Left)
+            .r#type(DispatchMouseEventType::MousePressed)
+            .click_count(2)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse down command: {}", e))?;
+        
+        page.execute(down_cmd).await?;
+        
+        // Mouse up with click_count=2
+        let up_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Left)
+            .r#type(DispatchMouseEventType::MouseReleased)
+            .click_count(2)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse up command: {}", e))?;
+        
+        page.execute(up_cmd).await?;
+        
+        println!("{}", format!("Double-clicked at ({}, {})", x, y).green());
+        Ok(())
+    }
+
+    pub async fn right_click_at_coordinates(&self, x: f64, y: f64) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", format!("Right-clicking at coordinates: ({}, {})", x, y).blue());
+        
+        let page = self.page.as_ref().unwrap();
+        
+        // Move mouse to coordinates
+        let move_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .r#type(DispatchMouseEventType::MouseMoved)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse move command: {}", e))?;
+        
+        page.execute(move_cmd).await?;
+        
+        // Right click (mouse down)
+        let down_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Right)
+            .r#type(DispatchMouseEventType::MousePressed)
+            .click_count(1)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse down command: {}", e))?;
+        
+        page.execute(down_cmd).await?;
+        
+        // Mouse up
+        let up_cmd = DispatchMouseEventParams::builder()
+            .x(x)
+            .y(y)
+            .button(MouseButton::Right)
+            .r#type(DispatchMouseEventType::MouseReleased)
+            .click_count(1)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build mouse up command: {}", e))?;
+        
+        page.execute(up_cmd).await?;
+        
+        println!("{}", format!("Right-clicked at ({}, {})", x, y).green());
         Ok(())
     }
 }

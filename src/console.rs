@@ -73,6 +73,9 @@ impl Console {
             "help" | "h" => self.show_help(),
             "navigate" | "go" => self.cmd_navigate(args).await,
             "click" => self.cmd_click(args).await,
+            "clickat" => self.cmd_click_at(args).await,
+            "doubleclickat" => self.cmd_double_click_at(args).await,
+            "rightclickat" => self.cmd_right_click_at(args).await,
             "type" => self.cmd_type(args).await,
             "scroll" => self.cmd_scroll(args).await,
             "search" => self.cmd_search(args).await,
@@ -107,6 +110,9 @@ impl Console {
         
         println!("{}", "Interaction:".bold());
         println!("  {} <selector>     Click an element", "click".cyan());
+        println!("  {} <x> <y>        Click at coordinates", "clickat".cyan());
+        println!("  {} <x> <y>   Double-click at coordinates", "doubleclickat".cyan());
+        println!("  {} <x> <y>    Right-click at coordinates", "rightclickat".cyan());
         println!("  {} <sel> <text>   Type text into element", "type".cyan());
         println!("  {} <dir> [amt]    Scroll (up/down/top/bottom)", "scroll".cyan());
         println!("  {} <query>      Search on current page", "search".cyan());
@@ -157,6 +163,54 @@ impl Console {
         let mut browser = self.browser.lock().await;
         browser.init().await?;
         browser.click(selector).await
+    }
+
+    async fn cmd_click_at(&self, args: &[&str]) -> Result<()> {
+        if args.len() < 2 {
+            println!("{} Usage: clickat <x> <y>", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let x = args[0].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid X coordinate"))?;
+        let y = args[1].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid Y coordinate"))?;
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.click_at_coordinates(x, y).await
+    }
+
+    async fn cmd_double_click_at(&self, args: &[&str]) -> Result<()> {
+        if args.len() < 2 {
+            println!("{} Usage: doubleclickat <x> <y>", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let x = args[0].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid X coordinate"))?;
+        let y = args[1].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid Y coordinate"))?;
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.double_click_at_coordinates(x, y).await
+    }
+
+    async fn cmd_right_click_at(&self, args: &[&str]) -> Result<()> {
+        if args.len() < 2 {
+            println!("{} Usage: rightclickat <x> <y>", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let x = args[0].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid X coordinate"))?;
+        let y = args[1].parse::<f64>()
+            .map_err(|_| anyhow::anyhow!("Invalid Y coordinate"))?;
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.right_click_at_coordinates(x, y).await
     }
 
     async fn cmd_type(&self, args: &[&str]) -> Result<()> {

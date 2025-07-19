@@ -59,6 +59,66 @@ browser-cli navigate https://example.com  # Uses tmux session automatically
 browser-cli click "#login"               # Same session!
 ```
 
+## 🎉 Visual Automation Success!
+
+### Coordinate-Based Clicking Discovery
+After struggling with complex CSS selectors and dynamic content, I discovered that coordinate-based clicking provides a robust alternative for automation tasks.
+
+### What Works:
+✅ **Precise coordinates** - Click exactly where you see elements in screenshots  
+✅ **JavaScript fallback** - `document.elementFromPoint(x, y).click()` works universally  
+✅ **No selector dependencies** - Works even when CSS classes change  
+✅ **Dynamic content handling** - Functions with React/Vue components  
+
+### Real Success Example:
+```bash
+# The traditional approach failed:
+tmux send-keys -t browser-session "click 'Sign In'" Enter  # Couldn't find selector
+
+# Visual automation worked perfectly:
+tmux send-keys -t browser-session "screenshot page.png" Enter
+# [Visually identify Sign In button at coordinates (642, 41)]
+tmux send-keys -t browser-session "clickat 642 41" Enter
+# Success! Navigation to auth page confirmed
+
+# Alternative JavaScript method:
+tmux send-keys -t browser-session "js document.elementFromPoint(642, 41).click()" Enter
+```
+
+### New Coordinate Commands Available:
+```bash
+clickat 640 400         # Left click at coordinates
+doubleclickat 300 200   # Double-click at coordinates  
+rightclickat 500 300    # Right-click at coordinates
+```
+
+### Visual Automation Workflow:
+1. **Take screenshot**: `screenshot page.png`
+2. **Identify target**: Open image and note coordinates
+3. **Execute click**: `clickat x y`
+4. **Verify result**: `screenshot after.png` or check page state
+
+### Advantages Over Selectors:
+- **Reliability**: Works when selectors are unreliable or change
+- **Simplicity**: No need to inspect DOM structure
+- **Universality**: Functions across any website or application
+- **Visual debugging**: Screenshots show exactly what you're clicking
+
+### Integration with Session Management:
+Coordinate-based clicking works perfectly with tmux sessions, providing both session persistence AND reliable element interaction:
+
+```bash
+# Complete workflow with visual automation
+tmux new-session -d -s browser-session "browser-cli console"
+tmux send-keys -t browser-session "navigate https://localhost:3000" Enter
+tmux send-keys -t browser-session "screenshot homepage.png" Enter
+tmux send-keys -t browser-session "clickat 642 41" Enter  # Sign In button
+tmux send-keys -t browser-session "screenshot auth-page.png" Enter
+# Continue with authentication flow...
+```
+
+This combination of tmux persistence + visual automation solves the major automation challenges encountered during testing.
+
 ## 🔴 Critical Pain Points (Without Tmux)
 
 ### 1. **No Session Persistence**

@@ -64,6 +64,38 @@ Close the browser:
 cargo run close
 ```
 
+### Coordinate-Based Clicking
+
+For precise interactions when CSS selectors aren't reliable:
+
+```bash
+# Click at specific coordinates
+cargo run click-at 640 400
+
+# Double-click at coordinates  
+cargo run double-click-at 300 200
+
+# Right-click at coordinates
+cargo run right-click-at 500 300
+```
+
+### Interactive Console Mode
+
+Launch an interactive REPL for complex automation workflows:
+
+```bash
+cargo run console
+```
+
+In console mode, you can use shortened commands:
+```
+browser> go https://example.com
+browser> ss screenshot.png
+browser> clickat 642 41
+browser> js document.elementFromPoint(642, 41).click()
+browser> exit
+```
+
 ### Example Workflow
 
 ```bash
@@ -92,10 +124,14 @@ cargo run close
 - **Async/Await**: Non-blocking operations using Tokio
 - **Browser Control**: Launch and control Chrome browser instances
 - **Element Interaction**: Click, type, and interact with page elements
+- **Visual Automation**: Coordinate-based clicking for precise interactions
+- **Interactive Console**: REPL mode for complex automation workflows
+- **JavaScript Execution**: Run custom JavaScript code in the browser
 - **Scrolling**: Scroll in any direction with custom amounts
 - **Screenshots**: Capture full-page screenshots
 - **Text Extraction**: Get text content from elements or page info
 - **Search**: Automatically find and use search inputs on pages
+- **Session Persistence**: Works with tmux for maintaining browser state
 - **Graceful Shutdown**: Properly close browser on exit signals
 
 ## For Claude Code Integration
@@ -109,8 +145,28 @@ This tool is designed to work with Claude Code for web automation tasks. After b
 ./target/release/browser-cli screenshot current-page.png
 ./target/release/browser-cli scroll down 300
 ./target/release/browser-cli text ".main-content"
+./target/release/browser-cli click-at 642 41  # Visual automation
+./target/release/browser-cli console          # Interactive mode
 ./target/release/browser-cli close
 ```
+
+### Visual Automation Example
+
+When traditional selectors fail, use coordinate-based clicking:
+
+```bash
+# Take a screenshot to identify target coordinates
+./target/release/browser-cli screenshot page.png
+
+# Click at specific coordinates (e.g., a button at x=642, y=41)
+./target/release/browser-cli click-at 642 41
+
+# Alternative: Use JavaScript element detection
+./target/release/browser-cli console
+browser> js document.elementFromPoint(642, 41).click()
+```
+
+See [visual-automation.md](visual-automation.md) for detailed documentation.
 
 ## Dependencies
 

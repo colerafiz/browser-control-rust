@@ -30,6 +30,27 @@ enum Commands {
         #[arg(help = "CSS selector of element to click")]
         selector: String,
     },
+    #[command(about = "Click at specific coordinates")]
+    ClickAt {
+        #[arg(help = "X coordinate")]
+        x: f64,
+        #[arg(help = "Y coordinate")]
+        y: f64,
+    },
+    #[command(about = "Double-click at specific coordinates")]
+    DoubleClickAt {
+        #[arg(help = "X coordinate")]
+        x: f64,
+        #[arg(help = "Y coordinate")]
+        y: f64,
+    },
+    #[command(about = "Right-click at specific coordinates")]
+    RightClickAt {
+        #[arg(help = "X coordinate")]
+        x: f64,
+        #[arg(help = "Y coordinate")]
+        y: f64,
+    },
     #[command(about = "Type text into an element")]
     Type {
         #[arg(help = "CSS selector of input element")]
@@ -89,6 +110,21 @@ async fn main() -> Result<()> {
             let mut browser = browser.lock().await;
             browser.init().await?;
             browser.click(&selector).await?;
+        }
+        Commands::ClickAt { x, y } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.click_at_coordinates(x, y).await?;
+        }
+        Commands::DoubleClickAt { x, y } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.double_click_at_coordinates(x, y).await?;
+        }
+        Commands::RightClickAt { x, y } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.right_click_at_coordinates(x, y).await?;
         }
         Commands::Type { selector, text } => {
             let mut browser = browser.lock().await;

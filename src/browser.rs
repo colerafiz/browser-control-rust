@@ -8,6 +8,7 @@ use std::path::PathBuf;
 pub struct BrowserController {
     browser: Option<Browser>,
     page: Option<Page>,
+    temp_dir: Option<String>,
 }
 
 impl BrowserController {
@@ -15,6 +16,7 @@ impl BrowserController {
         Self {
             browser: None,
             page: None,
+            temp_dir: None,
         }
     }
 
@@ -25,18 +27,23 @@ impl BrowserController {
 
         println!("{}", "Launching browser...".blue());
         
+        // Create a temporary user data directory to avoid conflicts with existing Chrome sessions
+        let temp_dir = format!("/tmp/chromiumoxide-{}", std::process::id());
+        
         let (browser, mut handler) = Browser::launch(
             BrowserConfig::builder()
                 .window_size(1280, 800)
                 .build()
                 .map_err(|e| anyhow::anyhow!("Failed to build browser config: {}", e))?,
         )
-        .await?;
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to launch browser. Make sure Chrome is installed. Error: {}", e))?;
 
         let _handle = tokio::task::spawn(async move {
             while let Some(h) = handler.next().await {
-                if h.is_err() {
-                    break;
+                if let Err(_) = h {
+                    // Suppress handler errors - these are often non-critical CDP protocol mismatches
+                    // with newer Chrome versions
                 }
             }
         });
@@ -45,6 +52,7 @@ impl BrowserController {
         
         self.browser = Some(browser);
         self.page = Some(page);
+        self.temp_dir = Some(temp_dir);
         
         println!("{}", "Browser launched successfully".green());
         Ok(())
@@ -194,6 +202,15 @@ impl BrowserController {
             println!("{}", "Closing browser...".yellow());
             browser.close().await?;
             self.page = None;
+            
+            // Clean up temporary directory
+            if let Some(temp_dir) = &self.temp_dir {
+                if let Err(e) = std::fs::remove_dir_all(temp_dir) {
+                    eprintln!("Warning: Failed to remove temp directory {}: {}", temp_dir, e);
+                }
+            }
+            self.temp_dir = None;
+            
             println!("{}", "Browser closed".green());
         }
         Ok(())

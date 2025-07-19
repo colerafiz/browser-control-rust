@@ -33,7 +33,7 @@ impl BrowserController {
         )
         .await?;
 
-        let handle = tokio::task::spawn(async move {
+        let _handle = tokio::task::spawn(async move {
             while let Some(h) = handler.next().await {
                 if h.is_err() {
                     break;
@@ -210,6 +210,77 @@ impl BrowserController {
         if self.page.is_none() {
             return Err(anyhow::anyhow!("Browser not initialized"));
         }
+        Ok(())
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.browser.is_some() && self.page.is_some()
+    }
+
+    pub async fn execute_javascript(&self, code: &str) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", format!("Executing JavaScript: {}", code).blue());
+        
+        let page = self.page.as_ref().unwrap();
+        let result = page.evaluate(code).await?;
+        
+        if let Some(value) = result.value() {
+            println!("{} {}", "Result:".green(), serde_json::to_string_pretty(value)?);
+        }
+        
+        Ok(())
+    }
+
+    pub async fn get_url(&self) -> Result<String> {
+        self.ensure_page()?;
+        
+        let page = self.page.as_ref().unwrap();
+        let url = page.url().await?;
+        Ok(url.unwrap_or_default())
+    }
+
+    pub async fn get_title(&self) -> Result<String> {
+        self.ensure_page()?;
+        
+        let page = self.page.as_ref().unwrap();
+        let title = page.get_title().await?;
+        Ok(title.unwrap_or_default())
+    }
+
+    pub async fn reload(&self) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", "Reloading page...".blue());
+        
+        let page = self.page.as_ref().unwrap();
+        page.reload().await?;
+        
+        println!("{}", "Page reloaded".green());
+        Ok(())
+    }
+
+    pub async fn go_back(&self) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", "Going back...".blue());
+        
+        let page = self.page.as_ref().unwrap();
+        page.evaluate("window.history.back()").await?;
+        
+        println!("{}", "Navigated back".green());
+        Ok(())
+    }
+
+    pub async fn go_forward(&self) -> Result<()> {
+        self.ensure_page()?;
+        
+        println!("{}", "Going forward...".blue());
+        
+        let page = self.page.as_ref().unwrap();
+        page.evaluate("window.history.forward()").await?;
+        
+        println!("{}", "Navigated forward".green());
         Ok(())
     }
 }

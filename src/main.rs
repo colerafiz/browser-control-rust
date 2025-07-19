@@ -1,9 +1,11 @@
 mod browser;
+mod console;
 
 use anyhow::Result;
 use browser::BrowserController;
 use clap::{Parser, Subcommand};
 use colored::*;
+use console::Console;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -59,6 +61,8 @@ enum Commands {
     },
     #[command(about = "Close the browser")]
     Close,
+    #[command(about = "Enter interactive console mode")]
+    Console,
 }
 
 #[tokio::main]
@@ -115,6 +119,10 @@ async fn main() -> Result<()> {
         Commands::Close => {
             let mut browser = browser.lock().await;
             browser.close().await?;
+        }
+        Commands::Console => {
+            let mut console = Console::new(Arc::clone(&browser))?;
+            console.run().await?;
         }
     }
 

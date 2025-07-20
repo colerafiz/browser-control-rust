@@ -87,8 +87,18 @@ impl Console {
             "reload" | "refresh" => self.cmd_reload().await,
             "back" => self.cmd_back().await,
             "forward" => self.cmd_forward().await,
+            "waitfor" => self.cmd_wait_for(args).await,
+            "waitfortext" => self.cmd_wait_for_text(args).await,
+            "waitfornav" => self.cmd_wait_for_navigation(args).await,
+            "highlight" => self.cmd_highlight(args).await,
             "clear" | "cls" => self.cmd_clear(),
             "status" => self.cmd_status().await,
+            "info" => self.cmd_page_info().await,
+            "elements" => self.cmd_elements().await,
+            "fill" => self.cmd_fill_field(args).await,
+            "submit" => self.cmd_submit_form(args).await,
+            "ticker" => self.cmd_ticker(args).await,
+            "waitenhanced" => self.cmd_wait_enhanced(args).await,
             _ => {
                 println!("{} Unknown command: '{}'. Type 'help' for available commands.", 
                     "⚠️".yellow(), command);
@@ -131,6 +141,28 @@ impl Console {
         
         println!("{}", "JavaScript:".bold());
         println!("  {}, {} <code>    Execute JavaScript", "js".cyan(), "eval".cyan());
+        println!();
+        
+        println!("{}", "Waiting:".bold());
+        println!("  {} <sel> [s]   Wait for element to appear", "waitfor".cyan());
+        println!("  {} <text> [s] Wait for text to appear", "waitfortext".cyan());
+        println!("  {} [s]        Wait for navigation", "waitfornav".cyan());
+        println!();
+        
+        println!("{}", "Debugging:".bold());
+        println!("  {} <selector>    Highlight element temporarily", "highlight".cyan());
+        println!("  {}              Get detailed page information", "info".cyan());
+        println!("  {}           List interactive elements", "elements".cyan());
+        println!();
+        
+        println!("{}", "Form Handling:".bold());
+        println!("  {} <sel> <val>    Robust form field filling", "fill".cyan());
+        println!("  {} [selector]     Submit form", "submit".cyan());
+        println!();
+        
+        println!("{}", "Monitoring:".bold());
+        println!("  {} [sel] [interval] [max] Monitor page changes", "ticker".cyan());
+        println!("  {} <sel> [timeout] Enhanced element waiting", "waitenhanced".cyan());
         println!();
         
         println!("{}", "Utility:".bold());
@@ -314,6 +346,61 @@ impl Console {
         browser.go_forward().await
     }
 
+    async fn cmd_wait_for(&self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            println!("{} Usage: waitfor <selector> [timeout]", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let selector = args[0];
+        let timeout = args.get(1).and_then(|s| s.parse().ok());
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.wait_for_selector(selector, timeout).await
+    }
+
+    async fn cmd_wait_for_text(&self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            println!("{} Usage: waitfortext <text> [timeout]", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        // Check if last argument is a number (timeout)
+        let (text, timeout) = if args.len() > 1 {
+            if let Ok(timeout_secs) = args.last().unwrap().parse::<u64>() {
+                let text_parts = &args[..args.len() - 1];
+                (text_parts.join(" "), Some(timeout_secs))
+            } else {
+                (args.join(" "), None)
+            }
+        } else {
+            (args.join(" "), None)
+        };
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.wait_for_text(&text, timeout).await
+    }
+
+    async fn cmd_wait_for_navigation(&self, args: &[&str]) -> Result<()> {
+        let timeout = args.get(0).and_then(|s| s.parse().ok());
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.wait_for_navigation(timeout).await
+    }
+
+    async fn cmd_highlight(&self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            println!("{} Usage: highlight <selector>", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let selector = args[0];
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.highlight_element(selector).await
+    }
+
     fn cmd_clear(&self) -> Result<()> {
         print!("\x1B[2J\x1B[1;1H");
         println!("{}", "🚀 Browser CLI Interactive Console".bold().cyan());
@@ -323,12 +410,98 @@ impl Console {
     }
 
     async fn cmd_status(&self) -> Result<()> {
-        let browser = self.browser.lock().await;
-        if browser.is_initialized() {
-            println!("{} Browser is running and ready", "✅".green());
-        } else {
-            println!("{} Browser not initialized", "⚠️".yellow());
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        let status = browser.get_status().await?;
+        println!("{}", status);
+        Ok(())
+    }
+
+    async fn cmd_page_info(&self) -> Result<()> {
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        let info = browser.get_concise_page_info().await?;
+        println!("{}", info);
+        Ok(())
+    }
+
+    async fn cmd_elements(&self) -> Result<()> {
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        
+        let elements_info = browser.get_interactive_elements().await?;
+        println!("{}", elements_info);
+        
+        Ok(())
+    }
+
+    async fn cmd_fill_field(&self, args: &[&str]) -> Result<()> {
+        if args.len() < 2 {
+            println!("{} Usage: fill <selector> <value>", "⚠️".yellow());
+            return Ok(());
         }
+        
+        let selector = args[0];
+        let value = args[1..].join(" ");
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.fill_form_field(selector, &value).await
+    }
+
+    async fn cmd_submit_form(&self, args: &[&str]) -> Result<()> {
+        let selector = args.get(0).copied();
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        browser.submit_form(selector).await
+    }
+
+    async fn cmd_ticker(&self, args: &[&str]) -> Result<()> {
+        let selector = args.get(0).copied();
+        let interval = args.get(1).and_then(|s| s.parse::<u64>().ok()).unwrap_or(2);
+        let max_iterations = args.get(2).and_then(|s| s.parse::<u64>().ok());
+        
+        if interval == 0 {
+            println!("{} Interval must be greater than 0 seconds", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        
+        if let Some(sel) = selector {
+            println!("{} Starting ticker for selector: {}", "⏱️".cyan(), sel);
+        } else {
+            println!("{} Starting page monitoring ticker", "⏱️".cyan());
+        }
+        
+        browser.start_ticker(selector, interval, max_iterations).await
+    }
+
+    async fn cmd_wait_enhanced(&self, args: &[&str]) -> Result<()> {
+        if args.is_empty() {
+            println!("{} Usage: waitenhanced <selector> [timeout_seconds]", "⚠️".yellow());
+            return Ok(());
+        }
+        
+        let selector = args[0];
+        let timeout = args.get(1).and_then(|s| s.parse::<u64>().ok()).unwrap_or(10);
+        
+        let mut browser = self.browser.lock().await;
+        browser.init().await?;
+        
+        match browser.wait_for_element_enhanced(selector, timeout).await {
+            Ok(found) => {
+                if found {
+                    println!("{} Element ready for interaction", "✅".green());
+                } else {
+                    println!("{} Element not found within timeout", "❌".red());
+                }
+            }
+            Err(e) => {
+                println!("{} Wait error: {}", "⚠️".yellow(), e);
+            }
+        }
+        
         Ok(())
     }
 }

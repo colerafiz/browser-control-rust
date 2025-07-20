@@ -80,6 +80,30 @@ enum Commands {
         #[arg(help = "CSS selector (optional - gets page info if omitted)")]
         selector: Option<String>,
     },
+    #[command(about = "Wait for an element to appear")]
+    WaitFor {
+        #[arg(help = "CSS selector to wait for")]
+        selector: String,
+        #[arg(help = "Timeout in seconds", default_value = "10")]
+        timeout: Option<u64>,
+    },
+    #[command(about = "Wait for text to appear on page")]
+    WaitForText {
+        #[arg(help = "Text to wait for")]
+        text: String,
+        #[arg(help = "Timeout in seconds", default_value = "10")]
+        timeout: Option<u64>,
+    },
+    #[command(about = "Wait for navigation to complete")]
+    WaitForNavigation {
+        #[arg(help = "Timeout in seconds", default_value = "30")]
+        timeout: Option<u64>,
+    },
+    #[command(about = "Highlight an element for debugging")]
+    Highlight {
+        #[arg(help = "CSS selector to highlight")]
+        selector: String,
+    },
     #[command(about = "Close the browser")]
     Close,
     #[command(about = "Enter interactive console mode")]
@@ -151,6 +175,26 @@ async fn main() -> Result<()> {
             browser.init().await?;
             let text = browser.get_text(selector.as_deref()).await?;
             println!("{}", text.cyan());
+        }
+        Commands::WaitFor { selector, timeout } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.wait_for_selector(&selector, timeout).await?;
+        }
+        Commands::WaitForText { text, timeout } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.wait_for_text(&text, timeout).await?;
+        }
+        Commands::WaitForNavigation { timeout } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.wait_for_navigation(timeout).await?;
+        }
+        Commands::Highlight { selector } => {
+            let mut browser = browser.lock().await;
+            browser.init().await?;
+            browser.highlight_element(&selector).await?;
         }
         Commands::Close => {
             let mut browser = browser.lock().await;
